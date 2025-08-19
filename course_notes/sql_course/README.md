@@ -19,14 +19,15 @@ My purpose is learning SQL basics for data analysis in my project.
 - 2025-08-18: Practised about topics in Module 2
 
 ## Progress
-** Module 1 **
+**Module 1**
 - [x] Data Models
 - [x] SELECT
 - [x] Creating Tables
 - [x] Creating Temporary Tables
 - [x] Adding Comments
 - [x] ER Diagrams
-** Module 2 **
+
+**Module 2**
 - [x] WHERE
 - [x] IN, OR, AND, NOT Operators
 - [x] Wildcards
@@ -36,14 +37,16 @@ My purpose is learning SQL basics for data analysis in my project.
 - [x] DISTINCT
 - [x] GROUP BY
 - [x] HAVING
-** Module 3 **
+
+**Module 3**
 - [ ] Subqueries
 - [ ] Joining Tables
 - [ ] Inner Join
 - [ ] Aliases and Self Joins
 - [ ] Advanced Joins
 - [ ] Unions
-** Module 4 **
+
+**Module 4**
 - [ ] Text Strings
 - [ ] Date and Time Strings
 - [ ] Case Statements
