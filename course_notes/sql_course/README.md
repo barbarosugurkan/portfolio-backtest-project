@@ -8,7 +8,8 @@ My purpose is learning SQL basics for data analysis in my project.
 - [Chinook Database for Practise](https://github.com/lerocha/chinook-database)
 
 ## Contents
-- `sql_practise.ipynb` → Practise questions in jupyter notebook for Module 2
+- `sql_practise_module2.ipynb` → Practise questions in jupyter notebook for Module 2
+- `sql_practise_module3.ipynb` → Practise questions in jupyter notebook for Module 3
 - `Chinook_Sqlite.sqlite` → Chinook database for practise
 
 ## Learning Log
@@ -16,7 +17,10 @@ My purpose is learning SQL basics for data analysis in my project.
 - 2025-08-07: Learned Creating Tables and Comments
 - 2025-08-14: Learned ER Diagrams and Schemas
 - 2025-08-18: Started Module 2 and Finished the Lecture Part
-- 2025-08-18: Practised about topics in Module 2
+- 2025-08-19: Practised about topics in Module 2
+- 2025-08-20: Started Module 3 and Finished the Lecture Part
+- 2025-08-21: Practised about topics in Module 3
+
 
 ## Progress
 **Module 1**
@@ -39,12 +43,12 @@ My purpose is learning SQL basics for data analysis in my project.
 - [x] HAVING
 
 **Module 3**
-- [ ] Subqueries
-- [ ] Joining Tables
-- [ ] Inner Join
-- [ ] Aliases and Self Joins
-- [ ] Advanced Joins
-- [ ] Unions
+- [x] Subqueries
+- [x] Joining Tables
+- [x] Inner Join
+- [x] Aliases and Self Joins
+- [x] Advanced Joins
+- [x] Unions
 
 **Module 4**
 - [ ] Text Strings
