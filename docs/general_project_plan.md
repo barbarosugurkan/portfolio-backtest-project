@@ -6,11 +6,11 @@ As I mentioned, the one of the main aims of this project is to learn data scienc
 
 In this phase, I will start a pandas course for data analysis. 
 The link of the course: [Coursera - Python Data Analysis](https://www.coursera.org/learn/python-data-analysis/)
-For the reason why Pandas is chosen please check: [adr folder](adr/) or [specific document for this selection](data_processing_tool_selection.md)
+For the reason why Pandas is chosen please check: [adr folder](adr/)
 The main reason why this course is selected is:
-1) It is short and do not dive deep into Pandas details
-2) It contains enough information for my project (according to Gemini)
-3) It had many good comments
+- It is short and do not dive deep into Pandas details
+- It contains enough information for my project (according to Gemini)
+- It had many good comments
 
 This phase is basically about finishing the course and doing some practise on CSV files about data collection with yfinance.
 
@@ -20,10 +20,10 @@ Note: My python knowledge is intermediate so I did not need any python courses.
 
 In this phase, I will start a sql course.
 The link of the course: [Coursera - SQL for Data Science](https://www.coursera.org/learn/sql-for-data-science/)
-For the reason why SQL is chosen please check: [adr folder](adr/) or [specific document for this selection](data_storage_tool_selection.md)
+For the reason why SQL is chosen please check: [adr folder](adr/) or [specific document for this selection](database_design.md)
 The main reason why this course is selected is:
-1) It is kind of summary of SQL.
-2) It contains enough information for my project (according to Gemini)
+- It is kind of summary of SQL.
+- It contains enough information for my project (according to Gemini)
 
 This phase is basically about finishing the course and then practising learning in a database like Chinook.
 
@@ -51,14 +51,17 @@ The extentions that will be done in other phases will be:
 ## Phase 4: Retrieve Data from SQL and Use it in Score System
 
 - Automation for data collection
+
 To be continued...
 
 ## Phase 5: Backtesting
 
 Learn backtester library
+
 To be continued...
 
 ## Phase 6: Web Page
 
 Corey Schafer Flask Course (Backend) and The Odin Project (Frontend - HTML/CSS/JS)
+
 To be continued...
