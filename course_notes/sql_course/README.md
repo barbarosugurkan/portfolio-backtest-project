@@ -20,6 +20,10 @@ My purpose is learning SQL basics for data analysis in my project.
 - 2025-08-19: Practised about topics in Module 2
 - 2025-08-20: Started Module 3 and Finished the Lecture Part
 - 2025-08-21: Practised about topics in Module 3
+- 2025-08-24: Started Module 4
+- 2025-08-25: Finished the lecture part of Module 4 and started practising
+- 2025-08-26: Finished the final project
+
 
 
 ## Progress
@@ -51,8 +55,8 @@ My purpose is learning SQL basics for data analysis in my project.
 - [x] Unions
 
 **Module 4**
-- [ ] Text Strings
-- [ ] Date and Time Strings
-- [ ] Case Statements
-- [ ] Views
-- [ ] Data Governance and Profiling
+- [x] Text Strings
+- [x] Date and Time Strings
+- [x] Case Statements
+- [x] Views
+- [x] Data Governance and Profiling
