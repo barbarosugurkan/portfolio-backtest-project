@@ -1,4 +1,4 @@
-# ADR 6: Why Not Automate Now?
+# ADR 6: Why Not Automate Data Update Now?
 
 ## Status
 Proposed
