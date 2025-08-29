@@ -5,7 +5,7 @@ from isyatirimhisse import fetch_financials
 
 conn = sqlite3.connect("C:/Users/KULLANICI/Desktop/portfolio-backtest-project/data/database.db")
 
-ticker_dict = {"THYAO":1,"BIMAS":2}
+ticker_dict = {"THYAO":2,"BIMAS":1}
 
 df = fetch_financials(
     symbols=list(ticker_dict.keys()),
@@ -34,10 +34,20 @@ df_pivoted = df_melted.pivot_table(
 df_pivoted.columns.name = None
 df_pivoted.columns = df_pivoted.columns.str.lower().str.replace(" ","_")
 df_pivoted = df_pivoted.rename(columns={'net_sales': 'revenue',"gross_profit_(loss)": "gross_profit","operating_profits":"operating_profit","net_profit_after_taxes":"net_income","long_term_liabilities":"long_term_debt","short_term_liabilities":"short_term_debt","shareholders_equity":"equity"})
-df_pivoted['ebitda'] = df_pivoted['operating_profit'] + df_pivoted['depreciation_&_amortization']
+df_pivoted['ebitda'] = (df_pivoted['gross_profit'] - 
+               df_pivoted['marketing_selling_&_distrib._expenses_(-)'].abs() -
+               df_pivoted['general_administrative_expenses_(-)'].abs() - 
+               df_pivoted['research_&_development_expenses_(-)'].abs() +
+               df_pivoted['depreciation_&_amortization'])
 df_pivoted['fixed_assets'] = df_pivoted['total_assets'] - df_pivoted['current_assets']
-df_pivoted['gross_debt'] = df_pivoted['short-term_financial_loans'] + df_pivoted['long-term_financial_loans']
-df_pivoted['net_debt'] = df_pivoted['gross_debt'] - df_pivoted["cash\xa0and\xa0cash\xa0equivalents"]
+df_pivoted['gross_debt'] = (
+    df_pivoted['short-term_financial_loans'] + 
+    df_pivoted['long-term_financial_loans'] + 
+    df_pivoted['other_short-term_financial_liabilities'] +
+    df_pivoted['short-term_loans_from_financial_operations'] + 
+    df_pivoted['long-term_loans_from_financial_operations']
+)
+df_pivoted['net_debt'] = df_pivoted['gross_debt'] - df_pivoted["cash\xa0and\xa0cash\xa0equivalents"] - df_pivoted['short-term_financial_investments']
 df_pivoted['company_id'] = df_pivoted['symbol'].map(ticker_dict)
 df_pivoted["date_of_publish"] = np.nan
 
