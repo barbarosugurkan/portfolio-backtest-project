@@ -10,6 +10,9 @@ CREATE INDEX IF NOT EXISTS idx_financials_company_period
 
 CREATE INDEX IF NOT EXISTS idx_ratios_company_period
     ON ratio (company_id, date);
+    
+CREATE INDEX IF NOT EXISTS idx_multiples_company_period
+    ON multiple (company_id, date_of_price);
 
 CREATE INDEX IF NOT EXISTS idx_portfolio_company_date
     ON portfolio (company_id, date_purchased);

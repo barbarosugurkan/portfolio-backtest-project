@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS price (
 CREATE TABLE IF NOT EXISTS financial (
     financial_id     INTEGER PRIMARY KEY,
     company_id       INTEGER NOT NULL,
-    date_of_publish  TEXT    NOT NULL,                -- 'YYYY-MM-DD'
+    date_of_publish  TEXT,                -- 'YYYY-MM-DD'
     period           TEXT    NOT NULL,                -- örn: '2024Q1' veya '2024-06-30'
     revenue          REAL,
     gross_profit     REAL,
@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS financial (
     gross_debt       REAL,
     net_debt         REAL,
     equity           REAL,
-    share_count      INTEGER CHECK (share_count >= 0),
     FOREIGN KEY (company_id) REFERENCES company(company_id) ON DELETE CASCADE,
     UNIQUE (company_id, period)                        -- her dönem bir kayıt
 );
@@ -62,11 +61,6 @@ CREATE TABLE IF NOT EXISTS ratio (
     roa                 REAL,
     roic                REAL,
     asset_turnover      REAL,
-    pe                  REAL,
-    pb                  REAL,
-    ps                  REAL,
-    ev_ebitda           REAL,
-    dividend_yield      REAL,
     revenue_growth      REAL,
     net_income_growth   REAL,
     eps_growth          REAL,
@@ -75,7 +69,23 @@ CREATE TABLE IF NOT EXISTS ratio (
     UNIQUE (company_id, date)                         -- dönem başına tek oran seti
 );
 
--- 5) portfolio
+-- 5) multiple
+CREATE TABLE IF NOT EXISTS multiple (
+    multiple_id         INTEGER PRIMARY KEY,
+    company_id          INTEGER NOT NULL,
+    date_of_price       TEXT NOT NULL,
+    period              TEXT NOT NULL,
+    pe                  REAL,
+    pb                  REAL,
+    ps                  REAL,
+    ev_ebitda           REAL,
+    dividend_yield      REAL,
+    peg                 REAL,
+    FOREIGN KEY (company_id) REFERENCES company(company_id) ON DELETE CASCADE,
+    UNIQUE (company_id, date_of_price)
+);
+
+-- 6) portfolio
 CREATE TABLE IF NOT EXISTS portfolio (
     portfolio_id   INTEGER PRIMARY KEY,
     company_id     INTEGER NOT NULL,

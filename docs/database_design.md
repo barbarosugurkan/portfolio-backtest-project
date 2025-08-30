@@ -2,7 +2,9 @@
 
 The purpose of this document is to explain the database structure, design selections, data sources and maintainance strategy.
 
-## ER Diagram and Data Dictionary
+Check [initial_db_tests.md](initial_db_tests.md) for test done into database.
+
+## ER Diagram
 
 You can check the ER diagram, I have created:
 
@@ -13,10 +15,11 @@ You can check the ER diagram, I have created:
 company: basic information about companies 
 price: stock price information
 financial: some basic financials about stocks
-ratio: ratios calculated from financials
+ratio: accounting ratios calculated from financials
+multiple: price-based ratios calculated from financials and price
 portfolio: assets in portfolio and some other information
 
-- Why are there 5 different tables (**normalization**)?
+- Why are there 6 different tables (**normalization**)?
 
 It prevents data repetition, we might have same information many times if normalization was not done. However, denormalization would might be faster. Normalization is more academic approach for now.
 For example when price data is wanted to be updated, nothing will change in financial table which prevenets data repetition.
@@ -28,7 +31,7 @@ External sources might have different approaches when calculating ratios, there 
 - What are data sources?
 
 For the price data, the source will be **yfinance** API. It contains all the daily price data for BIST. The disadvantages might be query limit, inaccuracy and slow performance. The alternatives are mostly expensive and not suitable for test edition. In the future, Matriks can be used for BIST data.
-For the financial data, skorkart repo will be tried. It is not deeply investigated. The alternatives are manually loading data, TradingView API, Investing.com API.
+For the financial data, isyatirimhisse repo will be tried. It is not deeply investigated. The alternatives are manually loading data, TradingView API, Investing.com API.
 
 - I will store the data in **SQLite**. Why SQLite is chosen? 
 
