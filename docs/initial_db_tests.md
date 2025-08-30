@@ -1,4 +1,4 @@
-# Validation Rules & Testing of Database  in SQL
+# Validation Rules & Testing of Database in SQL
 
 - Test: **UNIQUE constraint on ticker**
 
@@ -38,7 +38,7 @@ Result: 4 (3 from seed + 1 new insert)
 
 Conclusion: SELECT query works and row count matches expectation.
 
-# Tests After fetch_prices.py
+# Tests On fetch_prices.py
 
 - Test: **Does the script work generally?**
 
@@ -70,3 +70,13 @@ Price data for 2025-01-10 was uploaded to database at max date. When the code wa
 Result: Script gives "sqlite3.IntegrityError: UNIQUE constraint failed: price.company_id, price.date" error, which is as expected. It does not upload duplicated data; however, it also does not upload the data that is not already uploaded, too. 
 
 Conclusion: There is no chance for duplicated data but if there is a date which would cause duplicated data the rest of the data is not uploaded.
+
+# Tests On fetch_financials.py
+
+- Test: **Data accuracy**
+
+THYAO financials are checked from Fintables.
+
+Result: revenue, gross_profit, operating_profit, net_income, current_assets, fixed_assets, long_term_debt, short_term_debt and equity data were correct but ebitda, gross_debt and net_debt calculations were wrong.
+
+Conclusion: ebitda, gross_debt and net_debt calculations were corrected.
