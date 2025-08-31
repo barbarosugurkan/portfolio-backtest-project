@@ -80,3 +80,13 @@ THYAO financials are checked from Fintables.
 Result: revenue, gross_profit, operating_profit, net_income, current_assets, fixed_assets, long_term_debt, short_term_debt and equity data were correct but ebitda, gross_debt and net_debt calculations were wrong.
 
 Conclusion: ebitda, gross_debt and net_debt calculations were corrected.
+
+# Tests On calc_ratios.py
+
+- Test: **Data accuracy**
+
+BIMAS ratios are checked from Fintables.
+
+Result: All were correct.
+
+Conclusion: All were correct.
