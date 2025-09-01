@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS price (
     high        REAL    CHECK (high  >= 0),
     low         REAL    CHECK (low   >= 0),
     volume      INTEGER CHECK (volume >= 0),
+    market_cap REAL,
     FOREIGN KEY (company_id) REFERENCES company(company_id) ON DELETE CASCADE,
     UNIQUE (company_id, date)                          -- aynı güne iki kayıt yok
 );

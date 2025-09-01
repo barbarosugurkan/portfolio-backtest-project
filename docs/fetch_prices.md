@@ -2,11 +2,11 @@
 
 ## Overview
 
-The goal of this step was to fetch daily stock price data from Yahoo Finance and insert it into our local SQLite database. The process can be divided into three main parts:
+The goal of this step was to fetch daily stock price data from Yahoo Finance and market cap data from isyatirimhisse,then insert it into our local SQLite database. The process can be divided into three main parts:
 
 1. Selecting the tickers
 
-2. Fetching the data with yfinance
+2. Fetching the data with yfinance and isyatirimhisse
 
 3. Inserting the data into the database
 
@@ -28,6 +28,15 @@ ticker_dict = {
     # ticker : company_id
     # more tickers can be added here
 }
+```
+
+Also, start and end dates are taken as inputs and converted into datetime object since yfinance and isyatirimhisse takes date inputs as different types.
+```
+start_date = '2025-01-09'
+end_date = '2025-01-15'
+
+start_date_object = datetime.strptime(start_date, "%Y-%m-%d")
+end_date_object = datetime.strptime(end_date, "%Y-%m-%d")
 ```
 
 ## 2. Fetching the data from yfinance
@@ -63,11 +72,31 @@ data.columns = data.columns.str.lower()
 
 # also add company_id
 data['company_id'] = data['ticker'].map(ticker_dict)
+```
+
+Add market cap data from isyatirimhisse
+
+```
+mc_df = fetch_stock_data(
+    symbols=[s[:-3] for s in tickers],
+    start_date=start_date_object.strftime("%d-%m-%Y"),
+    end_date=end_date_object.strftime("%d-%m-%Y"),
+    save_to_excel=False
+)
+mc_df = mc_df[["HGDG_HS_KODU","HGDG_TARIH","PD"]]
+mc_df = mc_df.rename(columns={"HGDG_HS_KODU": "ticker", "HGDG_TARIH": "date","PD":"market_cap"})
+mc_df["ticker"] = mc_df["ticker"] + ".IS"
+data = data.merge(
+    mc_df,
+    how="left",
+    left_on=["ticker", "date"],
+    right_on=["ticker", "date"]
+)
 data.drop('ticker', axis=1, inplace=True)
 ```
 
 At the end the resulting image looks like this:
-![screenshot](images/280825_2.png)
+![screenshot](images/010925.png)
 
 ## 3. Inserting data into the database
 
@@ -91,3 +120,4 @@ Company tickers can be taken from database or be stored in csv, etc for scalabil
 - Solving duplicate data problem
 - Making it more modular by separating it into functions.
 - More data validation
+- isyatirimhisse takes only year as an start and end inputs so when data is updated we need to take market cap data for whole year and then join that with yfinance data. Solve this.
