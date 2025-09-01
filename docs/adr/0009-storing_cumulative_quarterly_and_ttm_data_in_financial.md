@@ -1,4 +1,4 @@
-# ADR 8: Storing Cumulative, Quarterly and Trailing Twelve Months Data in Financial Table
+# ADR 9: Storing Cumulative, Quarterly and Trailing Twelve Months Data in Financial Table
 
 ## Status
 Proposed
