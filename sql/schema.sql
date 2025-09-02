@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS financial (
     ebitda_c           REAL,
     net_income_c       REAL,
     effective_tax_rate_ttm REAL,
+    cash_and_cash_equivalents REAL,
     current_assets   REAL,
     fixed_assets     REAL,
     long_term_debt   REAL,
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS financial (
     eps_c            REAL,
     eps_q            REAL,
     eps_ttm            REAL,
+    dividend_ttm       REAL,
     FOREIGN KEY (company_id) REFERENCES company(company_id) ON DELETE CASCADE,
     UNIQUE (company_id, period_year,period_month)                        -- her dönem bir kayıt
 );
@@ -105,8 +107,8 @@ CREATE TABLE IF NOT EXISTS multiple (
     multiple_id         INTEGER PRIMARY KEY,
     company_id          INTEGER NOT NULL,
     date_of_price       TEXT NOT NULL,
-    period_year         TEXT    NOT NULL,
-    period_month        TEXT    NOT NULL,
+    period_year         TEXT,
+    period_month        TEXT,
     pe                  REAL,
     pb                  REAL,
     ps                  REAL,

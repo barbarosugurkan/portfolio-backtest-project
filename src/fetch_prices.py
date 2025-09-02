@@ -8,8 +8,8 @@ conn = sqlite3.connect("C:/Users/KULLANICI/Desktop/portfolio-backtest-project/da
 
 ticker_dict = ticker_dict = {"BIMAS.IS": 1, "THYAO.IS": 2, "HTTBT.IS": 3}
 tickers = list(ticker_dict.keys())
-start_date = '2025-01-09'
-end_date = '2025-01-15'
+start_date = '2022-01-01'
+end_date = '2025-12-31'
 
 start_date_object = datetime.strptime(start_date, "%Y-%m-%d")
 end_date_object = datetime.strptime(end_date, "%Y-%m-%d")
