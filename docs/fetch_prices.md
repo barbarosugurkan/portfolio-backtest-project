@@ -121,3 +121,4 @@ Company tickers can be taken from database or be stored in csv, etc for scalabil
 - Making it more modular by separating it into functions.
 - More data validation
 - isyatirimhisse takes only year as an start and end inputs so when data is updated we need to take market cap data for whole year and then join that with yfinance data. Solve this.
+- Test market_cap data deeper

@@ -135,3 +135,4 @@ Company tickers can be taken from database or be stored in csv, etc for scalabil
 - Making it more modular by separating it into functions.
 - More data validation
 - isyatirimhisse takes year input. When new financials are reported, the system can not only get those new financials due to lack of input. This should be fixed.
+- When the the first financial data is cumulative Q4 data, it can not be converted into quarterly data, therefore can not be converted into ttm data. Solve this.
