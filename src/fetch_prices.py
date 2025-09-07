@@ -107,11 +107,11 @@ def fetch_prices(conn, ticker_dict: dict, start_date: str, end_date: str):
     # -----------------------------------------------------------
     # Bu koyacağımız veri database'de zaten var mı ona bakacağız.
     # -----------------------------------------------------------
-    if conn is not None:
+    if conn is not None: # bu kısım testlerde conn'un None olduğu durumları engellemek için
         try:
             # Sadece ilgili tarih aralığını DB’den çek
             query = """
-            SELECT company_id, date 
+            SELECT *
             FROM price 
             WHERE date BETWEEN ? AND ?
             """
@@ -125,19 +125,56 @@ def fetch_prices(conn, ticker_dict: dict, start_date: str, end_date: str):
                 indicator=True
             )
 
+            # indicator=True → yeni bir _merge kolonu ekleniyor:
+            # "left_only" → sadece final_df’de var, DB’de yok (yeni kayıt).
+            # "both" → hem final_df hem DB’de var (duplicate).
+
             # Uyarı mesajı
             dups = merged_df[merged_df['_merge'] == 'both']
             if not dups.empty:
                 for _, row in dups.iterrows():
                     print(f"Uyarı: company_id {row['company_id']} için {row['date'].strftime('%Y-%m-%d')} verisi zaten bulunuyor.")
 
-            final_df = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+            # burada sadece yeni güne ait veriler var
+            new_data_df = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+            new_data_df.columns = [col.replace('_x', '') if col.endswith('_x') else col for col in new_data_df.columns]
+            new_data_df = new_data_df[["date","close","high","low","open","volume","company_id","market_cap"]]
+
+            # bu kısımda ise daha önceden olan ancak değişmiş verileri değiştireceğiz
+            new_values = merged_df[['open_x', 'close_x', 'high_x', 'low_x', 'volume_x', 'market_cap_x']]
+            new_values.columns = [col.replace('_x', '') if col.endswith('_x') else col for col in new_values.columns]
+            old_values = merged_df[['open_y', 'close_y', 'high_y', 'low_y', 'volume_y', 'market_cap_y']]
+            old_values.columns = [col.replace('_y', '') if col.endswith('_y') else col for col in new_values.columns]
+            diffs = new_values.ne(old_values)   # element bazlı karşılaştırma (True/False)
+            row_has_diff = diffs.any(axis=1)
+            update_df = merged_df[row_has_diff & (merged_df['_merge'] == 'both')]
+
+            update_df.columns = [col.replace('_x', '') if col.endswith('_x') else col for col in update_df.columns]
+            update_df = update_df[["date","close","high","low","open","volume","company_id","market_cap"]]
+
+            update_list = [
+                (
+                    float(row.open), float(row.close), float(row.high), float(row.low),
+                    int(row.volume) if pd.notna(row.volume) else None,
+                    float(row.market_cap) if pd.notna(row.market_cap) else None,
+                    int(row.company_id), 
+                    row.date.strftime('%Y-%m-%d %H:%M:%S')  # string'e çevir
+                )
+                for row in update_df.itertuples(index=False)
+            ]
+
+
+            # Değişenler için uyarı mesajları
+            if not update_df.empty:
+                for _, row in update_df.iterrows():
+                    print(f"Uyarı: company_id {row['company_id']} için {row['date'].strftime('%Y-%m-%d')} veri veritabanındaki veriden farklıdır, değiştirilmiştir.")
+
 
         except Exception as e:
             print(f"Hata: Veritabanından mevcut veri çekilemedi. İşlem durduruldu: {e}")
             return pd.DataFrame()
 
-    return final_df.drop_duplicates(subset=["date", "company_id"], keep="last")
+    return new_data_df.drop_duplicates(subset=["date", "company_id"], keep="last"),update_list
 
 
 
@@ -145,12 +182,21 @@ if __name__ == "__main__":
     db_path = "C:/Users/KULLANICI/Desktop/portfolio-backtest-project/data/database.db"
 
     ticker_dict = _get_ticker_dict()
-    start_date = '2025-08-22'
+    start_date = '2025-08-20'
     end_date = '2025-09-03'
 
-    conn = sqlite3.connect(db_path)
-    final_df = fetch_prices(conn,ticker_dict,start_date,end_date)
+    with sqlite3.connect(db_path) as conn:
+        #conn.execute("PRAGMA journal_mode=WAL;")
 
-    final_df.to_sql('price', conn, if_exists='append', index=False)
-    conn.close()
+        new_data_df,update_list = fetch_prices(conn,ticker_dict,start_date,end_date)
+        
+        new_data_df.to_sql('price', conn, if_exists='append', index=False)
+
+        if update_list:
+            conn.executemany(
+                "UPDATE price SET open=?, close=?, high=?, low=?, volume=?, market_cap=? "
+                "WHERE company_id=? AND date=?",
+                update_list
+            )
+
     print("Price fetch completed.")
