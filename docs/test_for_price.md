@@ -58,4 +58,23 @@ Each test function is a self-contained scenario designed to validate a specific 
 
 #### `test_fetch_prices_handles_existing_data`
 * **Purpose:** To validate the crucial upsert (update or insert) logic of the pipeline.
-* **Scenario:** The test first populates the mock database with existing data. It then simulates a new data fetch that includes both
+* **Scenario:** The test first populates the mock database with existing data. It then simulates a new data fetch that includes both existing and new records. The test confirms that the function correctly separates these into two parts (`new_data_df` and `update_list`). It then executes both the insert and update operations and asserts that the final state of the database is correct, containing all original records plus the new ones, with any changed records updated.
+
+---
+
+### 4. Data Integrity Validation
+
+This final test is a separate and critical component of our validation strategy.
+
+#### `test_data_validation`
+
+* **Purpose:** This test doesn't validate the data ingestion process itself, but rather the **accuracy of the data content**. It's a "known good" check that ensures the values we get from our sources are correct within an acceptable range.
+* **Ground Truth Concept:** The test uses a `ground_truth_df`, which is a small, manually verified dataset of stock prices and market caps. This serves as our "source of truth."
+* **Tolerance Logic:** A key aspect of this test is the use of **tolerance levels**. Prices (open, close, high, low) are checked with a strict **1% deviation** tolerance, while volume and market cap are checked with a more forgiving **5% tolerance**. This acknowledges that minor discrepancies are common between data providers. Using tolerance-based assertions makes the test robust against minor, non-critical data differences.
+* **Descriptive Error Messages:** When a test fails, the `assert` statements provide highly descriptive error messages. They include the specific date, company ID, column name, and the exact percentage of deviation, which significantly speeds up debugging.
+
+---
+
+### 5. Keeping the Documentation Up-to-date
+
+As the project evolves, new tests may be added to cover new features or edge cases. This documentation should be updated to reflect any new test functions and their purpose.
