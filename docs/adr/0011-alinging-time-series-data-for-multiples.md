@@ -1,4 +1,4 @@
-# ADR 0011: Aligning Time-Series Data
+# ADR 11: Aligning Time-Series Data
 
 ## Status
 Proposed
