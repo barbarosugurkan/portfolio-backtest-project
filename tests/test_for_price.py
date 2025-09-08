@@ -19,6 +19,22 @@ from src.fetch_prices import fetch_prices
 @pytest.fixture
 def db_conn():
     conn = sqlite3.connect(':memory:')  # Bellekte geçici bir veritabanı oluştur
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS price (
+            price_id    INTEGER PRIMARY KEY,
+            company_id  INTEGER NOT NULL,
+            date        TEXT    NOT NULL,              
+            open        REAL    CHECK (open  >= 0),
+            close       REAL    CHECK (close >= 0),
+            high        REAL    CHECK (high  >= 0),
+            low         REAL    CHECK (low   >= 0),
+            volume      INTEGER CHECK (volume >= 0),
+            market_cap REAL,
+            FOREIGN KEY (company_id) REFERENCES company(company_id) ON DELETE CASCADE,
+            UNIQUE (company_id, date)
+            )"""
+        )
     yield conn
     conn.close()
 
@@ -359,3 +375,66 @@ def test_fetch_prices_handles_existing_data(mock_yf_download, mock_fetch_stock_d
     # 6. En son database'de yeterince veri var mı?
     final_db_df = pd.read_sql_query("SELECT * FROM price ORDER BY date", db_conn)
     assert final_db_df.shape[0] == 4
+
+
+def test_data_validation(db_conn):
+    ticker_dict = {
+        "BIMAS.IS":1,
+        "THYAO.IS":2,
+        "HTTBT.IS":3,
+        "AKFYE.IS":4,
+        "CEMTS.IS":5,
+    }
+    db_df,update_list = fetch_prices(db_conn,ticker_dict,"2022-09-01","2025-09-01")
+
+    ground_truth_df = pd.DataFrame(
+        {
+        'date': [pd.to_datetime('2024-07-26'), pd.to_datetime('2023-10-12'),pd.to_datetime('2024-08-05'),pd.to_datetime('2024-02-06'), pd.to_datetime('2023-08-02')],
+        'open': [599.0, 228.2, 27.40, 20.38, 10.72],
+        'close': [598.0, 219.9, 28.48, 21.50, 10.72],
+        'high': [603.5, 229.6, 30.14, 21.70, 10.85],
+        'low': [596.0, 213.6, 27.40, 20.14, 10.59],
+        'volume': [1.69e+06, 37.19e+06, 619.60e+03, 19.82e+06, 13.52e+06],
+        'market_cap': [363105600000, 303462000000, 8544000000, 21844000000, 5360000000],
+        'company_id': [1, 2, 3, 4, 5]
+        }
+    )
+    
+    # ground_truth_df'den (tarih, şirket_id) çiftlerini al
+    date_id_pairs = list(zip(ground_truth_df['date'], ground_truth_df['company_id']))
+
+    # db_df'i filtrele
+    db_df = db_df[
+        db_df.apply(lambda row: (row['date'], row['company_id']) in date_id_pairs, axis=1)
+    ]
+    
+    # Fiyat ve hacim sütunlarını sayısal tiplere dönüştür
+    for col in ['open', 'close', 'high', 'low', 'volume', 'market_cap']:
+        db_df[col] = pd.to_numeric(db_df[col], errors='coerce')
+    # Date verisini datetime yap
+    db_df["date"] = pd.to_datetime(db_df["date"])
+
+    # Her iki DataFrame'i de date ve company_id sütunlarına göre sırala
+    db_df = db_df.sort_values(by=['date', 'company_id']).reset_index(drop=True)
+    ground_truth_df = ground_truth_df.sort_values(by=['date', 'company_id']).reset_index(drop=True)
+
+    assert db_df.shape[0] == ground_truth_df.shape[0], "Karşılaştırma için DataFrame'lerin satır sayıları uyuşmuyor."
+
+    # Fiyat verilerini (açılış, kapanış, yüksek, düşük) karşılaştır. %1 sapma potansiyeli olsun.
+    for col in ['open', 'close', 'high', 'low']:
+        # Hacim verilerini %1 sapma toleransıyla karşılaştır
+        diff_percentage = np.abs(db_df[col] - ground_truth_df[col]) / ground_truth_df[col]
+        for idx, pct_diff in enumerate(diff_percentage):
+            assert pct_diff < 0.01, f"{ground_truth_df.iloc[idx]['date'].strftime('%Y-%m-%d')} tarihli ve {ground_truth_df.iloc[idx]['company_id']} company_id'sine sahip {col} verisi doğrulaması başarısız. Sapma: {pct_diff:.2%} (Beklenen: <1%)"
+
+
+    # Hacim verilerini %5 sapma toleransıyla karşılaştır
+    volume_diff_percentage = np.abs(db_df['volume'] - ground_truth_df['volume']) / ground_truth_df['volume']
+    for idx, pct_diff in enumerate(volume_diff_percentage):
+        assert pct_diff < 0.05, f"{ground_truth_df.iloc[idx]['date'].strftime('%Y-%m-%d')} tarihli ve {ground_truth_df.iloc[idx]['company_id']} company_id'sine sahip volume verisi doğrulaması başarısız. Sapma: {pct_diff:.2%} (Beklenen: <5%)"
+
+    # Market Cap verisini (market_cap) %5 sapma toleransıyla karşılaştır
+    market_cap_diff_percentage = np.abs(db_df['market_cap'] - ground_truth_df['market_cap']) / ground_truth_df['market_cap']
+    # Testin başarısız olması durumunda, sapma miktarını görmek için bir döngü ekleyebilirsin
+    for idx, pct_diff in enumerate(market_cap_diff_percentage):
+        assert pct_diff < 0.05, f"{ground_truth_df.iloc[idx]['date'].strftime('%Y-%m-%d')} tarihli ve {ground_truth_df.iloc[idx]['company_id']} company_id'sine sahip market cap verisi doğrulaması başarısız. Sapma: {pct_diff:.2%} (Beklenen: <5%)"
