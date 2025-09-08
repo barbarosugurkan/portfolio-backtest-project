@@ -50,9 +50,9 @@ def mock_db_data():
     data = {
         'date': [pd.to_datetime('2025-09-01'), pd.to_datetime('2025-09-01')],
         'open': [500.0, 300.0],
+        'close': [505.0, 305.0],
         'high': [510.0, 310.0],
         'low': [490.0, 290.0],
-        'close': [505.0, 305.0],
         'volume': [1000, 2000],
         'market_cap': [1.0, 2.0],
         'company_id': [1, 2]
@@ -112,9 +112,9 @@ def test_fetch_prices_happy_path(mock_yf_download, mock_fetch_stock_data,mock_yf
     expected_dtypes = {
         'date': 'datetime64[ns]',
         'open': np.dtype('float64'),
+        'close': np.dtype('float64'),
         'high': np.dtype('float64'),
         'low': np.dtype('float64'),
-        'close': np.dtype('float64'),
         'volume': np.dtype('float64'),
         'market_cap': np.dtype('float64'),
         'company_id': np.dtype('int64')
@@ -291,17 +291,18 @@ def test_fetch_prices_handles_existing_data(mock_yf_download, mock_fetch_stock_d
     mock_db_data.to_sql('price', db_conn, if_exists='append', index=False)
     
     # 2. yfinance ve isyatirim'dan gelecek verileri simüle et.
-    # Bu veriler hem 03-09-2025 (mevcut) hem de 04-09-2025 (yeni) verilerini içeriyor.
+    # Bu veriler hem 01-09-2025 (mevcut) hem de 02-09-2025 (yeni) verilerini içeriyor.
 
     columns_yf = [
         ('Close', 'BIMAS.IS'), ('High', 'BIMAS.IS'), ('Low', 'BIMAS.IS'), ('Open', 'BIMAS.IS'), ('Volume', 'BIMAS.IS'),
         ('Close', 'THYAO.IS'), ('High', 'THYAO.IS'), ('Low', 'THYAO.IS'), ('Open', 'THYAO.IS'), ('Volume', 'THYAO.IS')
     ]
+
     data_yf = np.array([
-        [529.5, 530.0, 520.0, 530.0, 3811537,  # BIMAS.IS verileri 1. gün
-        334.057983, 336.779937, 331.336029, 331.58348, 17815923], # THYAO.IS verileri 1. gün
-        [523.5, 530.2, 520.1, 530.5, 3811537,  # BIMAS.IS verileri 2. gün
-        339.5, 336.8, 331.336029, 320.5, 17815923] # THYAO.IS verileri 2. gün
+        [505.0, 510.0, 490.0, 490.0, 1000,  # BIMAS.IS verileri 1. gün
+        305.0, 310.0, 290.0, 300.0, 2000], # THYAO.IS verileri 1. gün
+        [523.5, 530.2, 520.1, 530.5, 1500,  # BIMAS.IS verileri 2. gün
+        339.5, 336.8, 331.3, 320.5, 2500] # THYAO.IS verileri 2. gün
     ]) 
     mock_df_yf = pd.DataFrame(
         data_yf,
@@ -317,8 +318,8 @@ def test_fetch_prices_handles_existing_data(mock_yf_download, mock_fetch_stock_d
     
     is_mock_df = pd.DataFrame({
         "HGDG_HS_KODU": ["BIMAS", "THYAO","BIMAS","THYAO"],
-        "HGDG_TARIH": ["01-09-2025", "01-09-2025","02-09-2025", "02-09-2025"],
-        "PD": [3.177000e+11,4.657500e+11,3.177000e+11,4.657500e+11],
+        "HGDG_TARIH": pd.to_datetime(["2025-09-01", "2025-09-01","2025-09-02", "2025-09-02"]),
+        "PD": [1.0,2.0,1.5,2.5],
         "PD_USD": [7.727708e+09,1.132886e+10,7.727708e+09,1.132886e+10]
     })
     mock_fetch_stock_data.return_value = is_mock_df
@@ -326,15 +327,35 @@ def test_fetch_prices_handles_existing_data(mock_yf_download, mock_fetch_stock_d
     ticker_dict = {"BIMAS.IS": 1, "THYAO.IS": 2}
 
     # ACT:
-    result_df = fetch_prices(conn=db_conn, ticker_dict=ticker_dict, start_date='2025-09-01', end_date='2025-09-02')
+    yeni_eklenecekler_df,update_list = fetch_prices(conn=db_conn, ticker_dict=ticker_dict, start_date='2025-09-01', end_date='2025-09-02')
+
+    # 1. Yeni verileri veritabanına ekle
+    yeni_eklenecekler_df.to_sql('price', db_conn, if_exists='append', index=False)
+    
+    # 2. Güncelleme listesi varsa, veritabanını güncelle
+    if update_list:
+        db_conn.executemany(
+            "UPDATE price SET open=?, close=?, high=?, low=?, volume=?, market_cap=? WHERE company_id=? AND date=?",
+            update_list
+        )
 
     # ASSERT:
     # 1. Fonksiyonun bir hata fırlatmadan çalıştığını ve bir DataFrame döndürdüğünü doğrula
-    assert not result_df.empty
+    assert not yeni_eklenecekler_df.empty
     
     # 2. Döndürülen DataFrame'in yalnızca yeni tarihi (02-09-2025) içerdiğini doğrula
     expected_dates = [pd.to_datetime('2025-09-02')]
-    assert list(result_df['date'].unique()) == expected_dates
+    assert list(yeni_eklenecekler_df['date'].unique()) == expected_dates
     
     # 3. Yalnızca yeni veriyi içerdiğinden emin olmak için satır sayısını kontrol et
-    assert result_df.shape[0] == 2  # BIMAS ve THYAO için 1'er satır = toplam 2 satır
+    assert yeni_eklenecekler_df.shape[0] == 2  # BIMAS ve THYAO için 1'er satır = toplam 2 satır
+
+    # 4. Update_list içinde ilk günün BIMAS verileri olmalı
+    assert len(update_list) == 1
+
+    # 5. Update list içeriği doğru mu?
+    assert update_list[0] == (490.0,505.0,510.0,490.0,1000,1.0,1,"2025-09-01 00:00:00")
+
+    # 6. En son database'de yeterince veri var mı?
+    final_db_df = pd.read_sql_query("SELECT * FROM price ORDER BY date", db_conn)
+    assert final_db_df.shape[0] == 4
