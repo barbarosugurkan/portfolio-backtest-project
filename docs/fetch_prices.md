@@ -125,6 +125,11 @@ Here’s how it works:
     * **`_merge` == 'left_only'**: This means the record is **brand new** and only exists in my fetched data. It's ready to be inserted.
     * **`_merge` == 'both'**: This means the record **already exists** in the database. I must now check if it needs to be updated.
 
+Here is a flowchart that shows these proccesses:
+![flowchart](images/Flowchart.png)
+
+
+Here are the codes:
 ```
     if conn is not None: 
         try:
