@@ -1,19 +1,52 @@
 import pandas as pd
 import numpy as np
 import sqlite3
+import os
+import json
 from isyatirimhisse import fetch_financials
 
-def fetch_fin(conn):
-    ticker_dict = {"THYAO":2,"BIMAS":1,"HTTBT":3}
+def _get_ticker_dict() -> dict:
+    """Proje kök dizinindeki config klasöründen ticker sözlüğünü okur."""
+    
+    # Mevcut dosyanın (fetch_prices.py) dizinini bulur
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Bir seviye yukarı çıkarak proje kök dizinine ulaşır
+    project_root = os.path.dirname(current_dir)
+    
+    # JSON dosyasının tam yolunu oluşturur
+    json_path = os.path.join(project_root, 'config', "ticker_dict.json")
+    
+    # Dosyayı açar ve veriyi okur
+    try:
+        with open(json_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Hata: Konfigürasyon dosyası bulunamadı. Lütfen '{json_path}' adresini kontrol edin.")
+        return {}
+    
 
-    df = fetch_financials(
-        symbols=list(ticker_dict.keys()),
-        start_year=2022,
-        end_year=2025,
-        exchange="TRY",
-        financial_group='1',
-        save_to_excel=False
-    )
+def fetch_fin(conn,ticker_dict: dict,start_year,end_year):
+
+    ticker_dict  = {key.replace('.IS', ''): value for key, value in ticker_dict.items()}
+
+    tickers = list(ticker_dict.keys())
+
+    try:
+        df = fetch_financials(
+            symbols=tickers,
+            start_year=start_year,
+            end_year=end_year,
+            exchange="TRY",
+            financial_group='1',
+            save_to_excel=False
+        )
+    except Exception as e: 
+        print(f"Hata: Veri çekilemedi. Bağlantı sorunu olabilir. Hata detayları: {e}")
+        return pd.DataFrame()
+
+    if df.empty:
+        return pd.DataFrame()
 
     df.drop(['FINANCIAL_ITEM_NAME_TR',"FINANCIAL_ITEM_CODE"], axis=1, inplace=True)  
 
@@ -53,6 +86,8 @@ def fetch_fin(conn):
     df_pivoted['period_month'] = pd.to_numeric(df_pivoted['period_month'])
     df_pivoted['period_year'] = pd.to_numeric(df_pivoted['period_year'])
 
+    df_pivoted = df_pivoted.drop_duplicates(subset=["period_year","period_month", "company_id"], keep="last")
+
     df_pivoted = df_pivoted.sort_values(by=['company_id', 'period_year', 'period_month']).reset_index(drop=True)
     kalemler = ["revenue","gross_profit","operating_profit","ebitda","net_income","taxation_on_continuing_operations","profit_before_tax_from_continuing_operations","eps","dividend"]
 
@@ -67,7 +102,9 @@ def fetch_fin(conn):
             df_pivoted.groupby(['company_id',"period_year"])[kalem_c].diff()
         )
 
-        df_pivoted[kalem_ttm] = df_pivoted.groupby('company_id')[kalem_q].rolling(window=4).sum().values
+        df_pivoted[kalem_ttm] = df_pivoted.groupby('company_id')[kalem_q].rolling(
+            window=4
+        ).sum().reset_index(level=0, drop=True)
 
     df_pivoted["effective_tax_rate_ttm"] = df_pivoted["taxation_on_continuing_operations_ttm"] + df_pivoted["profit_before_tax_from_continuing_operations_ttm"]
 
@@ -75,11 +112,59 @@ def fetch_fin(conn):
 
     df_pivoted = df_pivoted[['company_id',"period_year","period_month","date_of_publish","revenue_ttm","gross_profit_ttm","operating_profit_ttm","ebitda_ttm","net_income_ttm","revenue_q","gross_profit_q","operating_profit_q","ebitda_q","net_income_q","revenue_c","gross_profit_c","operating_profit_c","ebitda_c","net_income_c","effective_tax_rate_ttm","cash_and_cash_equivalents","current_assets","fixed_assets","long_term_debt","short_term_debt","gross_debt","net_debt","equity","eps_c","eps_q","eps_ttm","dividend_ttm"]]
 
-    return df_pivoted
+    # -----------------------------------------------------------
+    # Bu koyacağımız veri database'de zaten var mı ona bakacağız.
+    # -----------------------------------------------------------
+    if conn is not None: # bu kısım testlerde conn'un None olduğu durumları engellemek için
+        try:
+            # Sadece ilgili tarih aralığını DB’den çek
+            query = """
+            SELECT company_id,period_year,period_month
+            FROM financial 
+            WHERE period_year BETWEEN ? AND ?
+            """
+            existing_data = pd.read_sql_query(query, conn, params=[start_year, end_year])
+
+            existing_data['period_month'] = pd.to_numeric(existing_data['period_month'])
+            existing_data['period_year'] = pd.to_numeric(existing_data['period_year'])
+
+            merged_df = df_pivoted.merge(
+                existing_data,
+                on=['company_id','period_year',"period_month"],
+                how='left',
+                indicator=True
+            )
+
+            if merged_df.empty:
+                return pd.DataFrame()
+            
+            dups = merged_df[merged_df['_merge'] == 'both']
+            if not dups.empty:
+                for row in dups.itertuples(index=False, name=None):
+                    company_id, p_year, p_month = row[ dups.columns.get_loc('company_id') ], row[ dups.columns.get_loc('period_year') ], row[ dups.columns.get_loc('period_month') ]
+                    print(f"Uyarı: company_id {company_id} için {p_year}/{p_month} verisi zaten bulunuyor.")
+
+            new_data_df = merged_df[merged_df['_merge'] == 'left_only'].drop(columns=['_merge'])
+            new_data_df.columns = [col.replace('_x', '') if col.endswith('_x') else col for col in new_data_df.columns]
+            new_data_df = new_data_df[['company_id',"period_year","period_month","date_of_publish","revenue_ttm","gross_profit_ttm","operating_profit_ttm","ebitda_ttm","net_income_ttm","revenue_q","gross_profit_q","operating_profit_q","ebitda_q","net_income_q","revenue_c","gross_profit_c","operating_profit_c","ebitda_c","net_income_c","effective_tax_rate_ttm","cash_and_cash_equivalents","current_assets","fixed_assets","long_term_debt","short_term_debt","gross_debt","net_debt","equity","eps_c","eps_q","eps_ttm","dividend_ttm"]]
+
+        except Exception as e:
+            print(f"Hata: Veritabanından mevcut veri çekilemedi. İşlem durduruldu: {e}")
+            return pd.DataFrame()
+    else:
+        return df_pivoted
+
+    return new_data_df.drop_duplicates(subset=["period_year","period_month", "company_id"], keep="last")
 
 
 if __name__ == "__main__":
     conn = sqlite3.connect("C:/Users/KULLANICI/Desktop/portfolio-backtest-project/data/database.db")
-    df_pivoted = fetch_fin(conn)
+
+    ticker_dict = _get_ticker_dict()
+
+    start_year = 2020
+    end_year = 2021
+
+    df_pivoted = fetch_fin(conn,ticker_dict,start_year,end_year)
     df_pivoted.to_sql('financial', conn, if_exists='append', index=False)
     conn.close()
